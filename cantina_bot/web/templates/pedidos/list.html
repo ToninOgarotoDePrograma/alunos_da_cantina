@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Gerenciar Pedidos{% endblock %}
+{% block page_title %}📋 Pedidos Ativos{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Pedidos Ativos</h5>
+        <div class="filter-controls">
+            <div class="input-group">
+                <input type="text" id="search-orders" class="form-control" placeholder="Filtrar...">
+                <select id="status-filter" class="form-select">
+                    <option value="all">Todos</option>
+                    <option value="Recebido">Recebido</option>
+                    <option value="Preparando">Preparando</option>
+                    <option value="Pronto">Pronto</option>
+                    <option value="Entregue">Entregue</option>
+                    <option value="Cancelado">Cancelado</option>
+                </select>
+                <button id="refresh-btn" class="btn btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Cliente</th>
+                        <th>Item</th>
+                        <th>Quantidade</th>
+                        <th>Status</th>
+                        <th>Hora</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pedido in pedidos %}
+                    <tr data-id="{{ pedido.id }}" data-status="{{ pedido.status }}">
+                        <td>{{ pedido.id }}</td>
+                        <td>{{ pedido.usuario }}</td>
+                        <td>{{ pedido.item_nome }}</td>
+                        <td>{{ pedido.quantidade }}</td>
+                        <td>
+                            <span class="badge bg-{{ 
+                                'primary' if pedido.status == 'Recebido' else
+                                'warning' if pedido.status == 'Preparando' else
+                                'success' if pedido.status == 'Pronto' else
+                                'secondary' if pedido.status == 'Entregue' else
+                                'danger'
+                            }}">{{ pedido.status }}</span>
+                        </td>
+                        <td>{{ pedido.timestamp|datetimeformat }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-primary view-details" data-id="{{ pedido.id }}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-success mark-ready" data-id="{{ pedido.id }}">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                                <button class="btn btn-outline-danger cancel-order" data-id="{{ pedido.id }}">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes -->
+<div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes do Pedido #<span id="modal-order-id"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Cliente:</strong> <span id="modal-order-user"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Item:</strong> <span id="modal-order-item"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Quantidade:</strong> <span id="modal-order-quantity"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Observações:</strong> 
+                    <p id="modal-order-notes" class="text-muted"></p>
+                </div>
+                <div class="mb-3">
+                    <strong>Status:</strong> <span id="modal-order-status" class="badge"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Data/Hora:</strong> <span id="modal-order-time"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="notify-customer">
+                    <i class="bi bi-bell"></i> Notificar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/pedidos.js') }}"></script>
+{% endblock %}

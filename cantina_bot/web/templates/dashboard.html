@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <!-- Cartões de Métricas -->
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Pedidos Hoje</h5>
+                <h2 class="card-text">{{ stats.pedidos_hoje }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Receita Hoje</h5>
+                <h2 class="card-text">R$ {{ "%.2f"|format(stats.receita_hoje) }}</h2>
+            </div>
+        </div>
+    </div>
+    <!-- ... outros cartões ... -->
+</div>
+
+<div class="row">
+    <!-- Gráfico de Pedidos -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Pedidos Recentes</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="pedidosChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Atividades Recentes -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Atividades</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    {% for pedido in pedidos[:5] %}
+                    <li class="list-group-item">
+                        <small class="text-muted">{{ pedido.timestamp|datetimeformat }}</small><br>
+                        {{ pedido.usuario }} - {{ pedido.item_nome }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    // Inicializa gráficos
+    document.addEventListener('DOMContentLoaded', function() {
+        initDashboardCharts({{ stats|tojson }});
+    });
+</script>
+{% endblock %}
