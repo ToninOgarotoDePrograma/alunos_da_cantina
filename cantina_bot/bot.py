@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Dict, Optional, List, Union
 from datetime import datetime
 import requests
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (Update, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (
     Application,
     CommandHandler,

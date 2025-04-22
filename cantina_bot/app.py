@@ -9,7 +9,7 @@ from flask_cors import CORS
 from web import init_app # Nova importação
 
 # Configuração do Flask
-app = Flask(__name__)
+app = Flask(__name__) # Cria
 CORS(app)
 app.secret_key = os.getenv('SECRET_KEY', '7641186323:AAF-Gjca2gfprqV740SH26i1s30gOJ42wE0')
 
