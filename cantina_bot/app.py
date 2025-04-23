@@ -6,7 +6,6 @@ from typing import List, Dict, Union
 from flask import Flask, jsonify, request, abort
 from flask_cors import CORS
 
-from web import init_app # Nova importação
 
 # Configuração do Flask
 app = Flask(__name__) # Cria
