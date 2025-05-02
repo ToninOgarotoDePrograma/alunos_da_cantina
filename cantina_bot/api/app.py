@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 from typing import List, Dict, Union
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort , send_from_directory
 from flask_cors import CORS
 
 
@@ -13,9 +13,8 @@ CORS(app)
 app.secret_key = os.getenv('SECRET_KEY', '7641186323:AAF-Gjca2gfprqV740SH26i1s30gOJ42wE0')
 
 # Inicializa a interface web
-init_app(app)
 # Constantes para os arquivos JSON
-DATA_DIR = 'data'#caminho
+DATA_DIR = '../data'  #caminho
 
 #criacao dos arquivos json no caminho
 CARDAPIO_FILE = os.path.join(DATA_DIR, 'cardapio.json')
@@ -60,43 +59,42 @@ class DataManager:
             json.dump(dados, f, indent=4, ensure_ascii=False)
 
 
+
 # ========== ROTAS PARA CARDÁPIO ==========
 @app.route('/cardapio', methods=['GET', 'POST'])
 def gerenciar_cardapio():
+    # GET: retorna o cardápio atual
     if request.method == 'GET':
         cardapio = DataManager.carregar_dados(CARDAPIO_FILE, [])
         return jsonify(cardapio)
 
-    # POST - Adicionar novo item ao cardápio
-    novo_item = request.get_json()
+    # POST: substitui o cardápio completo
+    data = request.get_json()
+    if not isinstance(data, list):
+        abort(400, description="Envie um array de itens: [{ 'nome': ..., 'preco': ... }, ...]")
 
-    # Validação dos dados
-    if not novo_item or not all(key in novo_item for key in ['nome', 'preco']):
-        abort(400, description="Dados incompletos. Campos obrigatórios: 'nome', 'preco'")
+    # Validação de cada item
+    novo_cardapio = []
+    for idx, item in enumerate(data, start=1):
+        if not all(k in item for k in ('nome', 'preco')):
+            abort(400, description=f"Item #{idx}: falta 'nome' ou 'preco'")
+        try:
+            preco = float(item['preco'])
+            if preco <= 0:
+                raise ValueError()
+        except:
+            abort(400, description=f"Item #{idx}: preço inválido")
+        nome = item['nome'].strip()
+        novo_cardapio.append({
+            'id': idx,       # sequencial de 1 até len(data)
+            'nome': nome,
+            'preco': preco
+        })
 
-    try:
-        # Converte preço para float e valida
-        novo_item['preco'] = float(novo_item['preco'])
-        if novo_item['preco'] <= 0:
-            raise ValueError("Preço deve ser positivo")
-    except (ValueError, TypeError):
-        abort(400, description="Preço inválido. Deve ser um número positivo")
+    # Grava tudo de uma vez
+    DataManager.salvar_dados(CARDAPIO_FILE, novo_cardapio)
+    return jsonify(novo_cardapio), 200
 
-    # Carrega e valida cardápio existente
-    cardapio = DataManager.carregar_dados(CARDAPIO_FILE, [])
-
-    # Verifica se item já existe (case insensitive)
-    if any(item['nome'].lower() == novo_item['nome'].lower() for item in cardapio):
-        abort(409, description="Item já existe no cardápio")
-
-    # Adiciona ID único ao novo item
-    novo_id = max(item.get('id', 0) for item in cardapio) + 1 if cardapio else 1
-    novo_item['id'] = novo_id
-
-    cardapio.append(novo_item)
-    DataManager.salvar_dados(CARDAPIO_FILE, cardapio)
-
-    return jsonify(novo_item), 201
 
 
 # ========== ROTAS PARA PEDIDOS ==========
@@ -267,6 +265,15 @@ def conflict(error):
 def internal_error(error):
     return jsonify({"error": "Erro interno do servidor", "message": "Ocorreu um erro inesperado"}), 500
 
+#front
+@app.route('/')
+def serve_frontend():
+    return send_from_directory('../webInterface', 'index.html')
+
+# Rota para arquivos estáticos (CSS, JS, imagens)
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('../webInterface', path)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

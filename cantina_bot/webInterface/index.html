@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍽️ Painel Administrativo - Cantina Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .navbar {
+            background-color: #2c3e50;
+        }
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #3498db;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .status-recebido {
+            background-color: #e9ecef;
+            color: #212529;
+        }
+        .status-preparando {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-pronto {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-entregue {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        .status-cancelado {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .badge {
+            font-size: 0.9em;
+            padding: 5px 10px;
+        }
+        .tab-content {
+            padding: 20px 0;
+        }
+        #pedidosTable tbody tr {
+            cursor: pointer;
+        }
+        .tooltip-inner {
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="bi bi-egg-fried"></i> Cantina Digital
+            </a>
+            <button class="btn btn-outline-light ms-auto me-2" onclick="atualizarTudo()">
+                <i class="bi bi-arrow-clockwise"></i> Atualizar
+            </button>
+            <span class="navbar-text" id="statusBar">
+                Conectando ao servidor...
+            </span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pedidos-tab" data-bs-toggle="tab" data-bs-target="#pedidos" type="button" role="tab">
+                    <i class="bi bi-list-check"></i> Pedidos Ativos
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cardapio-tab" data-bs-toggle="tab" data-bs-target="#cardapio" type="button" role="tab">
+                    <i class="bi bi-menu-button-wide"></i> Cardápio
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="ferramentas-tab" data-bs-toggle="tab" data-bs-target="#ferramentas" type="button" role="tab">
+                    <i class="bi bi-tools"></i> Ferramentas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="myTabContent">
+            <!-- Aba de Pedidos -->
+            <div class="tab-pane fade show active" id="pedidos" role="tabpanel">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" id="filtroPedidos" class="form-control" placeholder="Filtrar pedidos...">
+                    </div>
+                    <div class="col-md-4">
+                        <select id="filtroStatus" class="form-select">
+                            <option value="todos">Todos os status</option>
+                            <option value="Recebido">Recebido</option>
+                            <option value="Preparando">Preparando</option>
+                            <option value="Pronto">Pronto</option>
+                            <option value="Entregue">Entregue</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-primary w-100" onclick="aplicarFiltros()">
+                            <i class="bi bi-funnel"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover" id="pedidosTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Item</th>
+                                <th>Status</th>
+                                <th>Hora</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pedidosBody">
+                            <!-- Dados serão carregados via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between mt-3">
+                    <div>
+                        <button class="btn btn-success me-2" onclick="marcarComoPronto()">
+                            <i class="bi bi-check-circle"></i> Marcar como Pronto
+                        </button>
+                        <button class="btn btn-danger me-2" onclick="cancelarPedido()">
+                            <i class="bi bi-x-circle"></i> Cancelar Pedido
+                        </button>
+                        <button class="btn btn-info" onclick="notificarCliente()">
+                            <i class="bi bi-bell"></i> Notificar Cliente
+                        </button>
+                    </div>
+                    <button class="btn btn-secondary" onclick="mostrarDetalhesPedido()">
+                        <i class="bi bi-info-circle"></i> Detalhes
+                    </button>
+                </div>
+            </div>
+
+            <!-- Aba de Cardápio -->
+            <div class="tab-pane fade" id="cardapio" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-menu-button"></i> Cardápio Regular
+                            </div>
+                            <div class="card-body">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Preço</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="cardapioBody">
+                                        <!-- Dados serão carregados via JavaScript -->
+                                    </tbody>
+                                </table>
+                                <button class="btn btn-primary" onclick="editarCardapio()">
+                                    <i class="bi bi-pencil"></i> Editar Cardápio
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-box-seam"></i> Marmita do Dia
+                            </div>
+                            <div class="card-body">
+                                <div id="marmitaContent" style="white-space: pre-line;"></div>
+                                <button class="btn btn-primary mt-3" onclick="editarMarmita()">
+                                    <i class="bi bi-pencil"></i> Editar Marmita
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aba de Ferramentas -->
+            <div class="tab-pane fade" id="ferramentas" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-graph-up"></i> Estatísticas
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-primary w-100 mb-3" onclick="mostrarEstatisticas()">
+                                    <i class="bi bi-bar-chart"></i> Ver Estatísticas
+                                </button>
+                                <button class="btn btn-primary w-100 mb-3" onclick="gerarRelatorioDiario()">
+                                    <i class="bi bi-file-earmark-text"></i> Relatório Diário
+                                </button>
+                                <button class="btn btn-primary w-100" onclick="mostrarGraficos()">
+                                    <i class="bi bi-pie-chart"></i> Gráficos de Vendas
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-bell"></i> Notificações
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-warning w-100 mb-3" onclick="notificarTodos()">
+                                    <i class="bi bi-megaphone"></i> Notificar Todos
+                                </button>
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="mensagemNotificacao" style="height: 100px"></textarea>
+                                    <label for="mensagemNotificacao">Mensagem para todos</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-gear"></i> Utilitários
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-secondary w-100 mb-3" onclick="exportarDados()">
+                                    <i class="bi bi-download"></i> Exportar Dados
+                                </button>
+                                <button class="btn btn-info w-100" onclick="verificarHorarioMarmita()">
+                                    <i class="bi bi-clock"></i> Verificar Horário Marmita
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para detalhes do pedido -->
+    <div class="modal fade" id="detalhesPedidoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalhes do Pedido</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detalhesPedidoBody">
+                    <!-- Conteúdo será preenchido via JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar cardápio -->
+    <div class="modal fade" id="editarCardapioModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Cardápio</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Formato: Nome do Item - Preço (Ex: Prato Feito - 15.50)</p>
+                    <textarea class="form-control" id="cardapioText" rows="15" style="font-family: monospace;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarCardapio()">Salvar Cardápio</button>
+                    <button type="button" class="btn btn-info" onclick="formatarCardapio()">Formatar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar marmita -->
+    <div class="modal fade" id="editarMarmitaModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Marmita do Dia</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Digite os itens da marmita (um por linha):</p>
+                    <textarea class="form-control" id="marmitaText" rows="10"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" onclick="salvarMarmita()">Salvar Marmita</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Variáveis globais
+        let pedidos = [];
+        let cardapio = [];
+        let cardapioDoDia = [];
+        let pedidoSelecionado = null;
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+
+        // Inicialização
+        document.addEventListener('DOMContentLoaded', function() {
+            atualizarTudo();
+            setInterval(atualizarTudo, 15000); // Atualizar a cada 15 segundos
+        });
+
+        // Funções principais
+        async function atualizarTudo() {
+            try {
+                atualizarStatus("Atualizando dados...");
+
+                const [pedidosRes, cardapioRes, cardapioDiaRes] = await Promise.all([
+                    fetch('/pedidos').then(res => res.json()),
+                    fetch('/cardapio').then(res => res.json()),
+                    fetch('/cardapio-do-dia').then(res => res.json())
+                ]);
+
+                if (pedidosRes.error) throw new Error(pedidosRes.error);
+                if (cardapioRes.error) throw new Error(cardapioRes.error);
+                if (cardapioDiaRes.error) throw new Error(cardapioDiaRes.error);
+
+                pedidos = pedidosRes;
+                cardapio = cardapioRes;
+                cardapioDoDia = cardapioDiaRes.marmita || [];
+
+                atualizarListaPedidos();
+                atualizarCardapio();
+                atualizarStatus("Sistema atualizado em " + new Date().toLocaleTimeString());
+            } catch (error) {
+                console.error("Erro ao atualizar:", error);
+                atualizarStatus("Erro ao conectar ao servidor: " + error.message);
+            }
+        }
+
+        function atualizarStatus(mensagem) {
+            document.getElementById('statusBar').textContent = mensagem;
+        }
+
+        function atualizarListaPedidos() {
+            const tbody = document.getElementById('pedidosBody');
+            tbody.innerHTML = '';
+
+            pedidos.forEach(pedido => {
+                const tr = document.createElement('tr');
+                tr.dataset.id = pedido.id;
+                tr.onclick = () => selecionarPedido(pedido.id);
+
+                if (pedidoSelecionado === pedido.id) {
+                    tr.classList.add('table-primary');
+                }
+
+                const statusClass = `status-${pedido.status.toLowerCase()}`;
+
+                tr.innerHTML = `
+                    <td>${pedido.id}</td>
+                    <td>${pedido.usuario}</td>
+                    <td>${pedido.item || ''}</td>
+                    <td><span class="badge ${statusClass}">${pedido.status}</span></td>
+                    <td>${formatarData(pedido.timestamp)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); marcarComoPronto(${pedido.id})">
+                            <i class="bi bi-check-circle"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation(); cancelarPedido(${pedido.id})">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        function atualizarCardapio() {
+            // Cardápio regular
+            const cardapioBody = document.getElementById('cardapioBody');
+            cardapioBody.innerHTML = '';
+
+            cardapio.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.nome}</td>
+                    <td>R$ ${item.preco.toFixed(2)}</td>
+                `;
+                cardapioBody.appendChild(tr);
+            });
+
+            // Marmita do dia
+            document.getElementById('marmitaContent').textContent = cardapioDoDia.join('\n');
+        }
+
+        // Funções auxiliares
+        function formatarData(dataString) {
+            if (!dataString) return '';
+            const date = new Date(dataString);
+            return date.toLocaleString();
+        }
+
+        function selecionarPedido(id) {
+            pedidoSelecionado = id;
+            atualizarListaPedidos();
+        }
+
+        function aplicarFiltros() {
+            const filtroTexto = document.getElementById('filtroPedidos').value.toLowerCase();
+            const filtroStatus = document.getElementById('filtroStatus').value;
+
+            document.querySelectorAll('#pedidosBody tr').forEach(tr => {
+                const textoMatch = tr.textContent.toLowerCase().includes(filtroTexto);
+                const statusMatch = filtroStatus === 'todos' ||
+                                  tr.querySelector('.badge').textContent === filtroStatus;
+
+                tr.style.display = textoMatch && statusMatch ? '' : 'none';
+            });
+        }
+
+        // Funções de ação
+        async function marcarComoPronto(id = null) {
+            const pedidoId = id || pedidoSelecionado;
+            if (!pedidoId) return alert('Selecione um pedido primeiro');
+
+            if (!confirm(`Marcar pedido #${pedidoId} como pronto?`)) return;
+
+            try {
+                const response = await fetch(`/atualizar-status/${pedidoId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'Pronto' })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                alert('Pedido marcado como pronto!');
+                atualizarTudo();
+            } catch (error) {
+                alert('Erro ao atualizar pedido: ' + error.message);
+            }
+        }
+
+        async function cancelarPedido(id = null) {
+            const pedidoId = id || pedidoSelecionado;
+            if (!pedidoId) return alert('Selecione um pedido primeiro');
+
+            if (!confirm(`Cancelar o pedido #${pedidoId}?`)) return;
+
+            try {
+                const response = await fetch(`/atualizar-status/${pedidoId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status: 'Cancelado' })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                alert('Pedido cancelado!');
+                atualizarTudo();
+            } catch (error) {
+                alert('Erro ao cancelar pedido: ' + error.message);
+            }
+        }
+
+        function mostrarDetalhesPedido() {
+            if (!pedidoSelecionado) return alert('Selecione um pedido primeiro');
+
+            const pedido = pedidos.find(p => p.id === pedidoSelecionado);
+            if (!pedido) return;
+
+            const modalBody = document.getElementById('detalhesPedidoBody');
+            modalBody.innerHTML = `
+                <p><strong>ID:</strong> ${pedido.id}</p>
+                <p><strong>Cliente:</strong> ${pedido.usuario}</p>
+                <p><strong>Item:</strong> ${pedido.item || 'N/A'}</p>
+                <p><strong>Status:</strong> <span class="badge status-${pedido.status.toLowerCase()}">${pedido.status}</span></p>
+                <p><strong>Data/Hora:</strong> ${formatarData(pedido.timestamp)}</p>
+                <p><strong>Observações:</strong> ${pedido.observacoes || 'Nenhuma'}</p>
+            `;
+
+            const modal = new bootstrap.Modal(document.getElementById('detalhesPedidoModal'));
+            modal.show();
+        }
+
+        function notificarCliente() {
+            if (!pedidoSelecionado) return alert('Selecione um pedido primeiro');
+
+            const mensagem = prompt('Digite a mensagem para o cliente:');
+            if (!mensagem) return;
+
+            const pedido = pedidos.find(p => p.id === pedidoSelecionado);
+            if (!pedido || !pedido.user_id) return alert('Não foi possível notificar este cliente');
+
+            enviarNotificacaoTelegram(pedido.user_id, mensagem);
+            alert('Notificação enviada!');
+        }
+
+        async function notificarTodos() {
+            const mensagem = document.getElementById('mensagemNotificacao').value;
+            if (!mensagem) return alert('Digite uma mensagem primeiro');
+
+            if (!confirm(`Enviar esta mensagem para todos os clientes?\n\n${mensagem}`)) return;
+
+            try {
+                const response = await fetch('/notificar-todos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mensagem })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                alert(`Notificações enviadas para ${data.enviados} usuários`);
+            } catch (error) {
+                alert('Erro ao enviar notificações: ' + error.message);
+            }
+        }
+
+        function editarCardapio() {
+            const modal = new bootstrap.Modal(document.getElementById('editarCardapioModal'));
+            const textarea = document.getElementById('cardapioText');
+
+            // Formatando o cardápio para edição
+            const cardapioFormatado = cardapio.map(item => `${item.nome} - ${item.preco.toFixed(2)}`).join('\n');
+            textarea.value = cardapioFormatado;
+
+            modal.show();
+        }
+
+        function formatarCardapio() {
+            const textarea = document.getElementById('cardapioText');
+            const linhas = textarea.value.split('\n');
+            const linhasFormatadas = [];
+
+            linhas.forEach(linha => {
+                linha = linha.trim();
+                if (!linha) return;
+
+                if (linha.includes('-')) {
+                    const [nome, preco] = linha.split('-').map(s => s.trim());
+                    const precoFormatado = parseFloat(preco.replace(',', '.')).toFixed(2);
+                    linhasFormatadas.push(`${nome} - ${precoFormatado}`);
+                } else {
+                    linhasFormatadas.push(`${linha} - 0.00`);
+                }
+            });
+
+            textarea.value = linhasFormatadas.join('\n');
+        }
+
+       async function salvarCardapio() {
+    const textarea = document.getElementById('cardapioText');
+    const linhas = textarea.value.split('\n');
+    const novosItens = [];
+    const erros = [];
+
+    linhas.forEach((linha, index) => {
+        linha = linha.trim();
+        if (!linha) return;
+
+        const partes = linha.split('-');
+        if (partes.length !== 2) {
+            erros.push(`Linha ${index + 1}: formato inválido → "${linha}"`);
+            return;
+        }
+
+        const nome = partes[0].trim();
+        let precoStr = partes[1].trim().replace(',', '.');
+
+        const preco = parseFloat(precoStr);
+
+        if (!nome) {
+            erros.push(`Linha ${index + 1}: nome vazio`);
+            return;
+        }
+
+        if (isNaN(preco) || preco < 0) {
+            erros.push(`Linha ${index + 1}: preço inválido → "${partes[1]}"`);
+            return;
+        }
+
+        novosItens.push({ nome, preco });
+    });
+
+    if (erros.length > 0) {
+        alert("⚠️ Corrija os seguintes erros:\n\n" + erros.join('\n'));
+        return;
+    }
+
+    if (novosItens.length === 0) {
+        alert("⚠️ O cardápio não pode estar vazio.");
+        return;
+    }
+
+    console.log("Enviando JSON:", JSON.stringify(novosItens, null, 2));  // <-- DEBUG LOG
+
+    try {
+        const response = await fetch('/cardapio', {
+        method: 'POST',  // ou 'PUT' caso queira diferenciar
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(novosItens)  // array completo
+    });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Erro ao salvar cardápio');
+        }
+
+        alert('✅ Cardápio atualizado com sucesso!');
+        atualizarTudo();
+        bootstrap.Modal.getInstance(document.getElementById('editarCardapioModal')).hide();
+    } catch (error) {
+        alert('❌ Erro ao salvar cardápio: ' + error.message);
+    }
+}
+
+
+
+        function editarMarmita() {
+            const modal = new bootstrap.Modal(document.getElementById('editarMarmitaModal'));
+            const textarea = document.getElementById('marmitaText');
+
+            textarea.value = cardapioDoDia.join('\n');
+            modal.show();
+        }
+
+        async function salvarMarmita() {
+            const textarea = document.getElementById('marmitaText');
+            const itens = textarea.value.split('\n')
+                .map(item => item.trim())
+                .filter(item => item);
+
+            if (itens.length === 0) {
+                alert("A marmita não pode estar vazia");
+                return;
+            }
+
+            try {
+                const response = await fetch('/cardapio-do-dia', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ marmita: itens })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Erro ao salvar marmita');
+                }
+
+                alert('Marmita atualizada com sucesso!');
+                atualizarTudo();
+                bootstrap.Modal.getInstance(document.getElementById('editarMarmitaModal')).hide();
+            } catch (error) {
+                alert('Erro ao salvar marmita: ' + error.message);
+            }
+        }
+
+        function mostrarEstatisticas() {
+            const statusCount = {};
+            pedidos.forEach(pedido => {
+                statusCount[pedido.status] = (statusCount[pedido.status] || 0) + 1;
+            });
+
+            const hoje = new Date().toISOString().split('T')[0];
+            const pedidosHoje = pedidos.filter(p => p.timestamp.startsWith(hoje)).length;
+
+            // Simular valores monetários
+            const receitaTotal = pedidos.length * 15; // Valor fixo simulado
+            const receitaHoje = pedidosHoje * 15;
+
+            const estatisticas = `
+                📊 Estatísticas de Pedidos 📊
+
+                📅 Hoje:
+                • Pedidos: ${pedidosHoje}
+                • Receita: R$ ${receitaHoje.toFixed(2)}
+
+                🗓️ Total:
+                • Pedidos: ${pedidos.length}
+                • Receita: R$ ${receitaTotal.toFixed(2)}
+
+                📌 Status Atuais:
+                ${Object.entries(statusCount).map(([status, count]) =>
+                    `• ${status}: ${count} pedido(s)`
+                ).join('\n')}
+            `;
+
+            alert(estatisticas.trim());
+        }
+
+        function gerarRelatorioDiario() {
+            const hoje = new Date().toISOString().split('T')[0];
+            const pedidosHoje = pedidos.filter(p => p.timestamp.startsWith(hoje));
+
+            if (pedidosHoje.length === 0) {
+                alert("Nenhum pedido registrado hoje");
+                return;
+            }
+
+            // Simular valores
+            const receitaHoje = pedidosHoje.length * 15;
+
+            const relatorio = `
+                📅 Relatório Diário - ${new Date().toLocaleDateString()}
+
+                📌 Resumo:
+                • Total de pedidos: ${pedidosHoje.length}
+                • Receita total: R$ ${receitaHoje.toFixed(2)}
+
+                🍽️ Itens mais pedidos:
+                ${calcularItensMaisPedidos(pedidosHoje)}
+
+                ⏰ Horário de pico:
+                ${calcularHorarioPico(pedidosHoje)}
+            `;
+
+            if (confirm(relatorio.trim() + "\n\nDeseja exportar este relatório?")) {
+                exportarRelatorio(relatorio);
+            }
+        }
+
+        function calcularItensMaisPedidos(pedidos) {
+            const itens = {};
+            pedidos.forEach(p => {
+                itens[p.item] = (itens[p.item] || 0) + 1;
+            });
+
+            const topItens = Object.entries(itens)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+
+            return topItens.map(([item, qtd]) => `• ${item}: ${qtd}x`).join('\n') || "Dados insuficientes";
+        }
+
+        function calcularHorarioPico(pedidos) {
+            const horas = {};
+            pedidos.forEach(p => {
+                const hora = p.timestamp.split('T')[1].substring(0, 5); // HH:MM
+                horas[hora] = (horas[hora] || 0) + 1;
+            });
+
+            if (Object.keys(horas).length === 0) return "Dados insuficientes";
+
+            const pico = Object.entries(horas).reduce((a, b) => a[1] > b[1] ? a : b);
+            return `• ${pico[0]}h com ${pico[1]} pedidos`;
+        }
+
+        function exportarRelatorio(texto) {
+            const blob = new Blob([texto], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function mostrarGraficos() {
+            // Criar uma nova janela/modal para os gráficos
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'graficosModal';
+            modal.tabIndex = '-1';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-xl">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">📈 Gráficos de Vendas</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <canvas id="dailyChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="exportarGraficos()">
+                                <i class="bi bi-download"></i> Exportar Gráficos
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+
+            // Configurar gráficos quando o modal for mostrado
+            modal.addEventListener('shown.bs.modal', () => {
+                // Gráfico de status
+                const statusCtx = document.getElementById('statusChart').getContext('2d');
+                const statusCount = {
+                    'Recebido': 0,
+                    'Preparando': 0,
+                    'Pronto': 0,
+                    'Entregue': 0,
+                    'Cancelado': 0
+                };
+
+                pedidos.forEach(p => statusCount[p.status]++);
+
+                new Chart(statusCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(statusCount),
+                        datasets: [{
+                            label: 'Pedidos por Status',
+                            data: Object.values(statusCount),
+                            backgroundColor: [
+                                '#3498db',
+                                '#f39c12',
+                                '#2ecc71',
+                                '#95a5a6',
+                                '#e74c3c'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Status dos Pedidos'
+                            }
+                        }
+                    }
+                });
+
+                // Gráfico de pedidos por dia (simulado)
+                const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+                const dias = ["Seg", "Ter", "Qua", "Qui", "Sex"];
+                const pedidosDia = [12, 15, 8, 20, 25]; // Valores simulados
+
+                new Chart(dailyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: dias,
+                        datasets: [{
+                            label: 'Pedidos por Dia',
+                            data: pedidosDia,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: 'Pedidos por Dia (Semana Atual)'
+                            }
+                        }
+                    }
+                });
+            });
+
+            // Remover o modal quando fechado
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        function exportarGraficos() {
+            alert("Funcionalidade de exportação de gráficos seria implementada aqui");
+            // Na prática, você usaria bibliotecas como html2canvas para capturar os gráficos
+        }
+
+        function verificarHorarioMarmita() {
+            const agora = new Date();
+            const horas = agora.getHours();
+            const minutos = agora.getMinutes();
+
+            const inicioManha = 11; // 11:00
+            const fimManha = 13;    // 13:30
+
+            if ((horas > inicioManha || (horas === inicioManha && minutos >= 0)) &&
+                (horas < fimManha || (horas === fimManha && minutos <= 30))) {
+                alert("✅ Pedidos de marmita estão liberados\n\nHorário permitido: 11:00 às 13:30");
+            } else {
+                alert("❌ Fora do horário para pedidos de marmita\n\nHorário permitido: 11:00 às 13:30");
+            }
+        }
+
+        function exportarDados() {
+            const blob = new Blob([JSON.stringify(pedidos, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pedidos_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function enviarNotificacaoTelegram(chatId, mensagem) {
+            // Esta função seria chamada pelo servidor, mas incluída aqui para referência
+            console.log(`Notificação enviada para ${chatId}: ${mensagem}`);
+        }
+    </script>
+</body>
+</html>
